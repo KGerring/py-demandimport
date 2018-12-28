@@ -1,13 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-from __future__ import annotations
-import sys  # isort:skip
-import os  # isort:skip
-import re  # isort:skip
-from contextlib import ContextDecorator, AbstractContextManager, nullcontext
-
-from . import _config
-from . import mixins
+# demandimport.py - global demand-loading of modules for Mercurial
+#
+# Copyright 2006, 2007 Matt Mackall <mpm@selenic.com>
+#           2013, 2015 Bas Westerbaan <bas@westerbaan.name>
+#
+# This software may be used and distributed according to the terms of the
+# GNU General Public License version 2 or any later version.
 
 '''
 demandimport - automatic demandloading of modules
@@ -32,7 +29,6 @@ try:
     import __builtin__ as builtins
 except ImportError:
     import builtins
-import importlib
 
 import imp
 from threading import RLock
@@ -219,9 +215,6 @@ _ignore = set([
     'typing.abc', # issue #8
     ])
 
-EXTRA = set(_config.EXTRA_IGNORE)
-
-
 is_enabled = False
 _log = None
 
@@ -229,9 +222,7 @@ def ignore(module_name):
     global _ignore
     _ignore.add(module_name)
 
-
-
-class ignored(AbstractContextManager, ContextDecorator):
+class ignored(object):
     def __init__(self, module_name):
         self.module_name = module_name
     def __enter__(self):
@@ -258,7 +249,7 @@ def disable():
         builtins.__import__ = _origimport
         is_enabled = False
 
-class disabled(AbstractContextManager, ContextDecorator):
+class disabled(object):
     def __enter__(self):
         global is_enabled
         self.old = is_enabled
@@ -268,7 +259,7 @@ class disabled(AbstractContextManager, ContextDecorator):
         if self.old:
             enable()
 
-class enabled(AbstractContextManager, ContextDecorator):
+class enabled(object):
     def __enter__(self):
         global is_enabled
         self.old = is_enabled
@@ -297,19 +288,3 @@ def set_logfunc(logfunc):
         Useful to debug problems with third-party modules. """
     global _log
     _log = logfunc
-
-
-
-def export_globals(globals, module_name=__name__):
-	return sorted([getattr(v, '__name__', k)
-	               for k, v in list(globals.items())  # export
-	               if ((callable(v) and v.__module__.startswith(module_name)
-	                    or k.isupper()) and  # or CONSTANTS
-	                   not getattr(v, '__name__', k).startswith('__'))])  # neither marked internal
-
-__all__ = export_globals(globals(), __name__)
-
-__all__.append('EXTRA_IGNORE')
-
-if __name__ == '__main__':
-	pass
